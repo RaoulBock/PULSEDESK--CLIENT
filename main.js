@@ -1,201 +1,26 @@
-// main.js
-const {
-  app,
-  BrowserWindow,
-  Tray,
-  Menu,
-  ipcMain,
-  Notification,
-} = require("electron");
-const path = require("path");
-const https = require("https");
-const http = require("http");
+// main.js (PulseDesk client)
+const { io } = require("socket.io-client");
 const os = require("os");
 
-let tray = null;
-let win;
-let isLoggedIn = false;
+const socket = io("http://localhost:4000");
 
-function createWindow() {
-  win = new BrowserWindow({
-    width: 800,
-    height: 600,
-    webPreferences: {
-      contextIsolation: false,
-      nodeIntegration: true,
-    },
-    autoHideMenuBar: true,
-  });
+const deviceInfo = {
+  hostname: os.hostname(),
+  platform: os.platform(),
+  osType: os.type(),
+  osRelease: os.release(),
+  architecture: os.arch(),
+  cpuCount: os.cpus().length,
+};
 
-  win.loadFile(path.join(__dirname, "dist/index.html"));
+socket.on("connect", () => {
+  socket.emit("register", deviceInfo);
+  console.log("Registered PulseDesk client with server");
+});
 
-  win.on("close", (event) => {
-    if (!app.isQuiting) {
-      event.preventDefault();
-      win.hide();
-    }
-  });
-}
-
-function fetchSystemData() {
-  const hostname = os.hostname();
-  const interfaces = os.networkInterfaces();
-  const privateIPs = [];
-
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name]) {
-      if (iface.family === "IPv4" && !iface.internal) {
-        privateIPs.push(iface.address);
-      }
-    }
+setInterval(() => {
+  if (socket.connected) {
+    // Send hostname as an object with heartbeat
+    socket.emit("heartbeat", { hostname: os.hostname() });
   }
-
-  const systemInfo = {
-    hostname,
-    platform: os.platform(),
-    osType: os.type(),
-    osRelease: os.release(),
-    architecture: os.arch(),
-    uptime: os.uptime(),
-    totalMemory: `${(os.totalmem() / 1024 / 1024 / 1024).toFixed(2)} GB`,
-    freeMemory: `${(os.freemem() / 1024 / 1024 / 1024).toFixed(2)} GB`,
-    cpus: os.cpus().map((cpu) => cpu.model),
-    cpuCount: os.cpus().length,
-    privateIPs,
-    publicIP: null,
-  };
-
-  https
-    .get("https://api.ipify.org?format=json", (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk));
-      res.on("end", () => {
-        try {
-          const json = JSON.parse(data);
-          systemInfo.publicIP = json.ip;
-
-          // ✅ Send to backend
-          sendToBackend(systemInfo);
-
-          // ✅ Notify UI
-          win.webContents.send("system:data", systemInfo);
-
-          new Notification({
-            title: "System Info",
-            body: "System details sent to backend.",
-          }).show();
-        } catch (e) {
-          new Notification({
-            title: "Error",
-            body: "Failed to parse public IP.",
-          }).show();
-        }
-      });
-    })
-    .on("error", () => {
-      new Notification({
-        title: "Error",
-        body: "Failed to fetch public IP.",
-      }).show();
-    });
-}
-
-function sendToBackend(data) {
-  const postData = JSON.stringify(data);
-
-  const options = {
-    hostname: "localhost",
-    port: 4000,
-    path: "/api/report",
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Content-Length": Buffer.byteLength(postData),
-    },
-  };
-
-  const req = http.request(options, (res) => {
-    let response = "";
-    res.on("data", (chunk) => (response += chunk));
-    res.on("end", () => {
-      console.log("✅ Data sent to backend:", response);
-    });
-  });
-
-  req.on("error", (err) => {
-    console.error("❌ Failed to send data to backend:", err.message);
-    new Notification({
-      title: "Backend Error",
-      body: "Failed to send system info.",
-    }).show();
-  });
-
-  req.write(postData);
-  req.end();
-}
-
-function updateTrayMenu() {
-  const loggedOutMenu = Menu.buildFromTemplate([
-    { label: "Login", click: () => win.show() },
-    {
-      label: "Exit",
-      click: () => {
-        app.isQuiting = true;
-        app.quit();
-      },
-    },
-  ]);
-
-  const loggedInMenu = Menu.buildFromTemplate([
-    { label: "Fetch Data", click: fetchSystemData },
-    { label: "Show App", click: () => win.show() },
-    {
-      label: "Logout",
-      click: () => {
-        isLoggedIn = false;
-        updateTrayMenu();
-        win.webContents.send("user:logout");
-      },
-    },
-    {
-      label: "Quit",
-      click: () => {
-        app.isQuiting = true;
-        app.quit();
-      },
-    },
-  ]);
-
-  tray.setContextMenu(isLoggedIn ? loggedInMenu : loggedOutMenu);
-}
-
-ipcMain.on("user:login", () => {
-  isLoggedIn = true;
-  updateTrayMenu();
-  fetchSystemData(); // auto-fetch on login
-});
-
-ipcMain.on("user:logout", () => {
-  isLoggedIn = false;
-  updateTrayMenu();
-  win.webContents.send("user:logout");
-});
-
-app.whenReady().then(() => {
-  Menu.setApplicationMenu(null);
-  createWindow();
-
-  tray = new Tray(path.join(__dirname, "public", "favicon.ico"));
-  tray.setToolTip("Corp System Info App");
-  tray.on("click", () => win.show());
-
-  updateTrayMenu();
-});
-
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
-});
-
-app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
-});
+}, 20000);
