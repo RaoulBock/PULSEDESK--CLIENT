@@ -35,11 +35,11 @@ function createWindow() {
   });
 }
 
-function fetchData() {
+function fetchSystemData() {
   const hostname = os.hostname();
   const interfaces = os.networkInterfaces();
-
   const privateIPs = [];
+
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name]) {
       if (iface.family === "IPv4" && !iface.internal) {
@@ -48,6 +48,22 @@ function fetchData() {
     }
   }
 
+  const systemInfo = {
+    hostname,
+    platform: os.platform(),
+    osType: os.type(),
+    osRelease: os.release(),
+    architecture: os.arch(),
+    uptime: os.uptime(),
+    totalMemory: `${(os.totalmem() / 1024 / 1024 / 1024).toFixed(2)} GB`,
+    freeMemory: `${(os.freemem() / 1024 / 1024 / 1024).toFixed(2)} GB`,
+    cpus: os.cpus().map((cpu) => cpu.model),
+    cpuCount: os.cpus().length,
+    privateIPs,
+    publicIP: null,
+  };
+
+  // Get public IP address
   https
     .get("https://api.ipify.org?format=json", (res) => {
       let data = "";
@@ -55,16 +71,15 @@ function fetchData() {
       res.on("end", () => {
         try {
           const json = JSON.parse(data);
-          const publicIP = json.ip;
+          systemInfo.publicIP = json.ip;
 
-          console.log("Hostname:", hostname);
-          console.log("Private IP(s):", privateIPs.join(", "));
-          console.log("Public IP:", publicIP);
-
+          console.log("🖥️ System Info:", systemInfo);
           new Notification({
-            title: "Network Info",
-            body: "Logged network info to console.",
+            title: "System Info",
+            body: "System details logged to console.",
           }).show();
+
+          win.webContents.send("system:data", systemInfo);
         } catch (e) {
           new Notification({
             title: "Error",
@@ -94,7 +109,7 @@ function updateTrayMenu() {
   ]);
 
   const loggedInMenu = Menu.buildFromTemplate([
-    { label: "Fetch Data", click: fetchData },
+    { label: "Fetch Data", click: fetchSystemData },
     { label: "Show App", click: () => win.show() },
     {
       label: "Logout",
@@ -132,16 +147,14 @@ app.whenReady().then(() => {
   createWindow();
 
   tray = new Tray(path.join(__dirname, "public", "favicon.ico"));
-  tray.setToolTip("Electron React App");
+  tray.setToolTip("Corp System Info App");
   tray.on("click", () => win.show());
 
   updateTrayMenu();
 });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+  if (process.platform !== "darwin") app.quit();
 });
 
 app.on("activate", () => {
