@@ -1,22 +1,26 @@
-# 💻 Hello World Electron App
+# 💻 Electron System Info Utility
 
-A simple cross-platform desktop application built with **Electron**, **React.js**, and **Node.js**.  
-It runs a minimal "Hello World" React UI and sits in the Windows system tray with interactive tray options including **"Fetch Data"**, **"Show App"**, and **"Quit"**.
+A modern, cross-platform desktop application built with **Electron**, **React.js**, and **Node.js**.  
+It displays useful system information and sits in the Windows system tray with interactive tray options like **"Fetch Info"**, **"Show App"**, and **"Quit"**.
 
 ## ✨ Features
 
-- ✅ Electron + React integration
-- ✅ System tray icon (bottom right on Windows)
-- ✅ Tray context menu with custom actions
-- ✅ React-based UI with Webpack + Babel
-- ✅ Build and installer via `electron-builder`
-- ✅ Fetches and displays data from an API
+- ✅ Electron + React seamless integration
+- ✅ React-based UI using Webpack + Babel
+- ✅ Windows system tray support
+- ✅ Tray context menu with interactive actions
+- ✅ Secure login/logout system
+- ✅ Fetches and displays local machine information:
+  - Hostname
+  - Private IP address(es)
+  - Public IP address
+- ✅ Build and installer support via `electron-builder`
 
 ---
 
 ## 📦 Installation
 
-1. **Clone the repo**:
+1. **Clone the repository**:
 
    ```bash
    git clone https://github.com/RaoulBock/HELLO-WORLD-ELECTRON.git

@@ -63,7 +63,6 @@ function fetchSystemData() {
     publicIP: null,
   };
 
-  // Get public IP address
   https
     .get("https://api.ipify.org?format=json", (res) => {
       let data = "";
@@ -76,7 +75,7 @@ function fetchSystemData() {
           console.log("🖥️ System Info:", systemInfo);
           new Notification({
             title: "System Info",
-            body: "System details logged to console.",
+            body: "System details sent to UI.",
           }).show();
 
           win.webContents.send("system:data", systemInfo);
@@ -134,6 +133,7 @@ function updateTrayMenu() {
 ipcMain.on("user:login", () => {
   isLoggedIn = true;
   updateTrayMenu();
+  fetchSystemData(); // auto-fetch on login
 });
 
 ipcMain.on("user:logout", () => {
