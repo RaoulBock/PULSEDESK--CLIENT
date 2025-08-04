@@ -1,3 +1,4 @@
+// main.js
 const {
   app,
   BrowserWindow,
@@ -8,6 +9,7 @@ const {
 } = require("electron");
 const path = require("path");
 const https = require("https");
+const http = require("http");
 const os = require("os");
 
 let tray = null;
@@ -72,13 +74,16 @@ function fetchSystemData() {
           const json = JSON.parse(data);
           systemInfo.publicIP = json.ip;
 
-          console.log("🖥️ System Info:", systemInfo);
+          // ✅ Send to backend
+          sendToBackend(systemInfo);
+
+          // ✅ Notify UI
+          win.webContents.send("system:data", systemInfo);
+
           new Notification({
             title: "System Info",
-            body: "System details sent to UI.",
+            body: "System details sent to backend.",
           }).show();
-
-          win.webContents.send("system:data", systemInfo);
         } catch (e) {
           new Notification({
             title: "Error",
@@ -93,6 +98,40 @@ function fetchSystemData() {
         body: "Failed to fetch public IP.",
       }).show();
     });
+}
+
+function sendToBackend(data) {
+  const postData = JSON.stringify(data);
+
+  const options = {
+    hostname: "localhost",
+    port: 4000,
+    path: "/api/report",
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(postData),
+    },
+  };
+
+  const req = http.request(options, (res) => {
+    let response = "";
+    res.on("data", (chunk) => (response += chunk));
+    res.on("end", () => {
+      console.log("✅ Data sent to backend:", response);
+    });
+  });
+
+  req.on("error", (err) => {
+    console.error("❌ Failed to send data to backend:", err.message);
+    new Notification({
+      title: "Backend Error",
+      body: "Failed to send system info.",
+    }).show();
+  });
+
+  req.write(postData);
+  req.end();
 }
 
 function updateTrayMenu() {
