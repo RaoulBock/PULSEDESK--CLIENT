@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 
-const App = () => {
+const { ipcRenderer } = window.require("electron");
+
+export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
 
   const handleLogin = () => {
     setLoggedIn(true);
-    window.electronAPI.sendLogin();
+    ipcRenderer.send("user:login");
   };
 
   return (
@@ -29,6 +31,4 @@ const App = () => {
       )}
     </div>
   );
-};
-
-export default App;
+}

@@ -24,7 +24,7 @@ function createWindow() {
     autoHideMenuBar: true,
   });
 
-  win.loadFile("dist/index.html");
+  win.loadFile(path.join(__dirname, "dist/index.html"));
 
   win.on("close", (event) => {
     if (!app.isQuiting) {
@@ -34,7 +34,6 @@ function createWindow() {
   });
 }
 
-// Fetch Data Example
 function fetchData() {
   https
     .get("https://api.chucknorris.io/jokes/random", (res) => {
@@ -56,15 +55,9 @@ function fetchData() {
     });
 }
 
-// Tray Menu Based on Login State
 function updateTrayMenu() {
   const loggedOutMenu = Menu.buildFromTemplate([
-    {
-      label: "Login",
-      click: () => {
-        win.show();
-      },
-    },
+    { label: "Login", click: () => win.show() },
     {
       label: "Exit",
       click: () => {
@@ -75,16 +68,8 @@ function updateTrayMenu() {
   ]);
 
   const loggedInMenu = Menu.buildFromTemplate([
-    {
-      label: "Fetch Data",
-      click: fetchData,
-    },
-    {
-      label: "Show App",
-      click: () => {
-        win.show();
-      },
-    },
+    { label: "Fetch Data", click: fetchData },
+    { label: "Show App", click: () => win.show() },
     {
       label: "Quit",
       click: () => {
@@ -94,11 +79,9 @@ function updateTrayMenu() {
     },
   ]);
 
-  const menu = isLoggedIn ? loggedInMenu : loggedOutMenu;
-  tray.setContextMenu(menu);
+  tray.setContextMenu(isLoggedIn ? loggedInMenu : loggedOutMenu);
 }
 
-// Handle login from renderer
 ipcMain.on("user:login", () => {
   isLoggedIn = true;
   updateTrayMenu();
@@ -109,13 +92,12 @@ app.whenReady().then(() => {
   createWindow();
 
   tray = new Tray(path.join(__dirname, "public", "favicon.ico"));
-  tray.setToolTip("Taskbar Tray App");
+  tray.setToolTip("Electron React App");
   tray.on("click", () => win.show());
 
   updateTrayMenu();
 });
 
-// For macOS support
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
