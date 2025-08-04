@@ -1,9 +1,34 @@
-import React from "react";
-import { createRoot } from "react-dom/client";
+import React, { useState } from "react";
 
 const App = () => {
-  return <h1>Hello World from React and Electron!</h1>;
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  const handleLogin = () => {
+    setLoggedIn(true);
+    window.electronAPI.sendLogin();
+  };
+
+  return (
+    <div style={{ padding: 40, fontFamily: "Arial, sans-serif" }}>
+      {!loggedIn ? (
+        <>
+          <h2>Login</h2>
+          <input
+            placeholder="Username"
+            style={{ display: "block", marginBottom: 10 }}
+          />
+          <input
+            placeholder="Password"
+            type="password"
+            style={{ display: "block", marginBottom: 20 }}
+          />
+          <button onClick={handleLogin}>Log In</button>
+        </>
+      ) : (
+        <h2>Welcome! You're logged in.</h2>
+      )}
+    </div>
+  );
 };
 
-const root = createRoot(document.getElementById("root"));
-root.render(<App />);
+export default App;

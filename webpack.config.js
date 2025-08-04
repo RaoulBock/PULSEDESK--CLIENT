@@ -9,6 +9,10 @@ module.exports = {
   },
   resolve: {
     extensions: [".js", ".jsx"],
+    fallback: {
+      fs: false,
+      path: require.resolve("path-browserify"),
+    },
   },
   module: {
     rules: [
