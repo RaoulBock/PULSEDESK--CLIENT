@@ -10,6 +10,11 @@ export default function App() {
     ipcRenderer.send("user:login");
   };
 
+  const handleLogout = () => {
+    setLoggedIn(false);
+    ipcRenderer.send("user:logout");
+  };
+
   return (
     <div style={{ padding: 40, fontFamily: "Arial, sans-serif" }}>
       {!loggedIn ? (
@@ -27,7 +32,10 @@ export default function App() {
           <button onClick={handleLogin}>Log In</button>
         </>
       ) : (
-        <h2>Welcome! You're logged in.</h2>
+        <>
+          <h2>Welcome! You're logged in.</h2>
+          <button onClick={handleLogout}>Log Out</button>
+        </>
       )}
     </div>
   );

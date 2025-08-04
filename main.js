@@ -71,6 +71,14 @@ function updateTrayMenu() {
     { label: "Fetch Data", click: fetchData },
     { label: "Show App", click: () => win.show() },
     {
+      label: "Logout",
+      click: () => {
+        isLoggedIn = false;
+        updateTrayMenu();
+        win.webContents.send("user:logout"); // Notify renderer to update UI
+      },
+    },
+    {
       label: "Quit",
       click: () => {
         app.isQuiting = true;
@@ -85,6 +93,12 @@ function updateTrayMenu() {
 ipcMain.on("user:login", () => {
   isLoggedIn = true;
   updateTrayMenu();
+});
+
+ipcMain.on("user:logout", () => {
+  isLoggedIn = false;
+  updateTrayMenu();
+  win.webContents.send("user:logout"); // Notify renderer to update UI
 });
 
 app.whenReady().then(() => {
