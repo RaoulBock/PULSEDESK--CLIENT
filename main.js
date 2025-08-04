@@ -8,6 +8,7 @@ const {
 } = require("electron");
 const path = require("path");
 const https = require("https");
+const os = require("os");
 
 let tray = null;
 let win;
@@ -35,22 +36,47 @@ function createWindow() {
 }
 
 function fetchData() {
+  const hostname = os.hostname();
+  const interfaces = os.networkInterfaces();
+
+  const privateIPs = [];
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === "IPv4" && !iface.internal) {
+        privateIPs.push(iface.address);
+      }
+    }
+  }
+
   https
-    .get("https://api.chucknorris.io/jokes/random", (res) => {
+    .get("https://api.ipify.org?format=json", (res) => {
       let data = "";
       res.on("data", (chunk) => (data += chunk));
       res.on("end", () => {
-        const result = JSON.parse(data);
-        new Notification({
-          title: "Fetched Data",
-          body: result.value || "No data received.",
-        }).show();
+        try {
+          const json = JSON.parse(data);
+          const publicIP = json.ip;
+
+          console.log("Hostname:", hostname);
+          console.log("Private IP(s):", privateIPs.join(", "));
+          console.log("Public IP:", publicIP);
+
+          new Notification({
+            title: "Network Info",
+            body: "Logged network info to console.",
+          }).show();
+        } catch (e) {
+          new Notification({
+            title: "Error",
+            body: "Failed to parse public IP.",
+          }).show();
+        }
       });
     })
     .on("error", () => {
       new Notification({
         title: "Error",
-        body: "Failed to fetch data.",
+        body: "Failed to fetch public IP.",
       }).show();
     });
 }
@@ -75,7 +101,7 @@ function updateTrayMenu() {
       click: () => {
         isLoggedIn = false;
         updateTrayMenu();
-        win.webContents.send("user:logout"); // Notify renderer to update UI
+        win.webContents.send("user:logout");
       },
     },
     {
@@ -98,7 +124,7 @@ ipcMain.on("user:login", () => {
 ipcMain.on("user:logout", () => {
   isLoggedIn = false;
   updateTrayMenu();
-  win.webContents.send("user:logout"); // Notify renderer to update UI
+  win.webContents.send("user:logout");
 });
 
 app.whenReady().then(() => {

@@ -1,6 +1,9 @@
 import React, { useState } from "react";
-
 const { ipcRenderer } = window.require("electron");
+
+const os = window.require("os");
+const dns = window.require("dns");
+const https = window.require("https");
 
 const styles = {
   container: {
@@ -27,9 +30,6 @@ const styles = {
     outline: "none",
     transition: "border-color 0.3s",
   },
-  inputFocus: {
-    borderColor: "#0078D7",
-  },
   button: {
     width: "100%",
     padding: 12,
@@ -41,9 +41,7 @@ const styles = {
     fontSize: 16,
     cursor: "pointer",
     transition: "background-color 0.3s",
-  },
-  buttonHover: {
-    backgroundColor: "#005a9e",
+    marginTop: 10,
   },
   welcomeText: {
     textAlign: "center",
@@ -53,7 +51,6 @@ const styles = {
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
-  const [hover, setHover] = useState(false);
 
   const handleLogin = () => {
     setLoggedIn(true);
@@ -65,51 +62,57 @@ export default function App() {
     ipcRenderer.send("user:logout");
   };
 
+  const fetchData = () => {
+    const hostname = os.hostname();
+
+    const interfaces = os.networkInterfaces();
+    let privateIP = "Not found";
+
+    for (let name in interfaces) {
+      for (let iface of interfaces[name]) {
+        if (iface.family === "IPv4" && !iface.internal) {
+          privateIP = iface.address;
+        }
+      }
+    }
+
+    https
+      .get("https://api.ipify.org", (res) => {
+        let data = "";
+
+        res.on("data", (chunk) => {
+          data += chunk;
+        });
+
+        res.on("end", () => {
+          console.log("Hostname:", hostname);
+          console.log("Private IP:", privateIP);
+          console.log("Public IP:", data);
+        });
+      })
+      .on("error", (err) => {
+        console.error("Error fetching public IP:", err.message);
+      });
+  };
+
   return (
     <div style={styles.container}>
       {!loggedIn ? (
         <>
           <h2 style={styles.heading}>Login</h2>
-          <input
-            type="text"
-            placeholder="Username"
-            style={styles.input}
-            onFocus={(e) =>
-              (e.target.style.borderColor = styles.inputFocus.borderColor)
-            }
-            onBlur={(e) => (e.target.style.borderColor = "#ccc")}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            style={styles.input}
-            onFocus={(e) =>
-              (e.target.style.borderColor = styles.inputFocus.borderColor)
-            }
-            onBlur={(e) => (e.target.style.borderColor = "#ccc")}
-          />
-          <button
-            style={{ ...styles.button, ...(hover ? styles.buttonHover : {}) }}
-            onMouseEnter={() => setHover(true)}
-            onMouseLeave={() => setHover(false)}
-            onClick={handleLogin}
-          >
+          <input type="text" placeholder="Username" style={styles.input} />
+          <input type="password" placeholder="Password" style={styles.input} />
+          <button style={styles.button} onClick={handleLogin}>
             Log In
           </button>
         </>
       ) : (
         <>
           <h2 style={styles.welcomeText}>Welcome! You're logged in.</h2>
-          <button
-            style={{
-              ...styles.button,
-              marginTop: 20,
-              ...(hover ? styles.buttonHover : {}),
-            }}
-            onMouseEnter={() => setHover(true)}
-            onMouseLeave={() => setHover(false)}
-            onClick={handleLogout}
-          >
+          <button style={styles.button} onClick={fetchData}>
+            Fetch Data
+          </button>
+          <button style={styles.button} onClick={handleLogout}>
             Log Out
           </button>
         </>
