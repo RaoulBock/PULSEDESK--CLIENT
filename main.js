@@ -1,49 +1,162 @@
-const { app, Tray, Menu } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  Tray,
+  Menu,
+  ipcMain,
+  Notification,
+} = require("electron");
 const path = require("path");
+const https = require("https");
 const os = require("os");
-const { io } = require("socket.io-client");
 
 let tray = null;
-let socket;
+let win;
+let isLoggedIn = false;
 
-function createTray() {
-  tray = new Tray(path.join(__dirname, "public", "favicon.ico")); // path adjusted
+function createWindow() {
+  win = new BrowserWindow({
+    width: 800,
+    height: 600,
+    webPreferences: {
+      contextIsolation: false,
+      nodeIntegration: true,
+    },
+    autoHideMenuBar: true,
+  });
 
-  const contextMenu = Menu.buildFromTemplate([
-    { label: "Quit", click: () => app.quit() },
-  ]);
+  win.loadFile(path.join(__dirname, "dist/index.html"));
 
-  tray.setToolTip("PulseDesk Client");
-  tray.setContextMenu(contextMenu);
+  win.on("close", (event) => {
+    if (!app.isQuiting) {
+      event.preventDefault();
+      win.hide();
+    }
+  });
 }
 
-function startSocket() {
-  socket = io("http://localhost:4000");
+function fetchSystemData() {
+  const hostname = os.hostname();
+  const interfaces = os.networkInterfaces();
+  const privateIPs = [];
 
-  const deviceInfo = {
-    hostname: os.hostname(),
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === "IPv4" && !iface.internal) {
+        privateIPs.push(iface.address);
+      }
+    }
+  }
+
+  const systemInfo = {
+    hostname,
     platform: os.platform(),
     osType: os.type(),
     osRelease: os.release(),
     architecture: os.arch(),
+    uptime: os.uptime(),
+    totalMemory: `${(os.totalmem() / 1024 / 1024 / 1024).toFixed(2)} GB`,
+    freeMemory: `${(os.freemem() / 1024 / 1024 / 1024).toFixed(2)} GB`,
+    cpus: os.cpus().map((cpu) => cpu.model),
     cpuCount: os.cpus().length,
+    privateIPs,
+    publicIP: null,
   };
 
-  socket.on("connect", () => {
-    socket.emit("register", deviceInfo);
-    console.log("Registered PulseDesk client with server");
-  });
+  https
+    .get("https://api.ipify.org?format=json", (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        try {
+          const json = JSON.parse(data);
+          systemInfo.publicIP = json.ip;
 
-  setInterval(() => {
-    if (socket.connected) {
-      socket.emit("heartbeat", { hostname: os.hostname() });
-    }
-  }, 20000);
+          console.log("🖥️ System Info:", systemInfo);
+          new Notification({
+            title: "System Info",
+            body: "System details sent to UI.",
+          }).show();
+
+          win.webContents.send("system:data", systemInfo);
+        } catch (e) {
+          new Notification({
+            title: "Error",
+            body: "Failed to parse public IP.",
+          }).show();
+        }
+      });
+    })
+    .on("error", () => {
+      new Notification({
+        title: "Error",
+        body: "Failed to fetch public IP.",
+      }).show();
+    });
 }
 
-app.whenReady().then(() => {
-  createTray();
-  startSocket();
+function updateTrayMenu() {
+  const loggedOutMenu = Menu.buildFromTemplate([
+    { label: "Login", click: () => win.show() },
+    {
+      label: "Exit",
+      click: () => {
+        app.isQuiting = true;
+        app.quit();
+      },
+    },
+  ]);
 
-  app.on("window-all-closed", (e) => e.preventDefault());
+  const loggedInMenu = Menu.buildFromTemplate([
+    { label: "Fetch Data", click: fetchSystemData },
+    { label: "Show App", click: () => win.show() },
+    {
+      label: "Logout",
+      click: () => {
+        isLoggedIn = false;
+        updateTrayMenu();
+        win.webContents.send("user:logout");
+      },
+    },
+    {
+      label: "Quit",
+      click: () => {
+        app.isQuiting = true;
+        app.quit();
+      },
+    },
+  ]);
+
+  tray.setContextMenu(isLoggedIn ? loggedInMenu : loggedOutMenu);
+}
+
+ipcMain.on("user:login", () => {
+  isLoggedIn = true;
+  updateTrayMenu();
+  fetchSystemData(); // auto-fetch on login
+});
+
+ipcMain.on("user:logout", () => {
+  isLoggedIn = false;
+  updateTrayMenu();
+  win.webContents.send("user:logout");
+});
+
+app.whenReady().then(() => {
+  Menu.setApplicationMenu(null);
+  createWindow();
+
+  tray = new Tray(path.join(__dirname, "public", "favicon.ico"));
+  tray.setToolTip("Corp System Info App");
+  tray.on("click", () => win.show());
+
+  updateTrayMenu();
+});
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});
+
+app.on("activate", () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
