@@ -151,13 +151,31 @@ ipcMain.on("user:logout", () => {
   win.webContents.send("user:logout");
 });
 
+// app.whenReady().then(() => {
+//   Menu.setApplicationMenu(null);
+//   createWindow();
+//   const iconPath = path.resolve(
+//     __dirname,
+//     "public/icons8-fast-download-24.png"
+//   );
+//   tray = new Tray(iconPath);
+//   tray.setToolTip("Corp System Info App");
+//   tray.on("click", () => win.show());
+
+//   updateTrayMenu();
+// });
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
   createWindow();
-  const iconPath = path.resolve(
-    __dirname,
-    "public/icons8-fast-download-24.png"
-  );
+
+  let iconPath;
+
+  if (process.platform === "win32") {
+    iconPath = path.resolve(__dirname, "public/favicon.ico"); // Windows icon
+  } else {
+    iconPath = path.resolve(__dirname, "public/icons8-fast-download-24.png"); // Linux/macOS icon
+  }
+
   tray = new Tray(iconPath);
   tray.setToolTip("Corp System Info App");
   tray.on("click", () => win.show());
