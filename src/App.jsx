@@ -4,20 +4,28 @@ const { ipcRenderer } = window.require("electron");
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [systemData, setSystemData] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     ipcRenderer.on("user:logout", () => {
       setLoggedIn(false);
       setSystemData(null);
+      setLoading(false);
     });
 
     ipcRenderer.on("system:data", (_, data) => {
       setSystemData(data);
+      setLoading(false);
+    });
+
+    ipcRenderer.on("system:fetching", () => {
+      setLoading(true);
     });
 
     return () => {
       ipcRenderer.removeAllListeners("user:logout");
       ipcRenderer.removeAllListeners("system:data");
+      ipcRenderer.removeAllListeners("system:fetching");
     };
   }, []);
 
@@ -39,7 +47,9 @@ export default function App() {
         <>
           <button onClick={handleLogout}>🚪 Logout</button>
           <h2 style={{ marginTop: 30 }}>🖥️ System Information:</h2>
-          {systemData ? (
+          {loading ? (
+            <p>Fetching latest system info</p>
+          ) : systemData ? (
             <div style={{ lineHeight: 1.6 }}>
               <p>
                 <strong>Hostname:</strong> {systemData.hostname}
@@ -86,7 +96,7 @@ export default function App() {
               </ul>
             </div>
           ) : (
-            <p>Loading system info...</p>
+            <p>Loading system info ...</p>
           )}
         </>
       )}

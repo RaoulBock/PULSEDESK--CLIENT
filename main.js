@@ -36,6 +36,8 @@ function createWindow() {
 }
 
 function fetchSystemData() {
+  win.webContents.send("system:fetching");
+
   const hostname = os.hostname();
   const interfaces = os.networkInterfaces();
   const privateIPs = [];
@@ -145,8 +147,11 @@ ipcMain.on("user:logout", () => {
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
   createWindow();
-
-  tray = new Tray(path.join(__dirname, "public", "circel.png"));
+  const iconPath = path.resolve(
+    __dirname,
+    "public/icons8-fast-download-24.png"
+  );
+  tray = new Tray(iconPath);
   tray.setToolTip("Corp System Info App");
   tray.on("click", () => win.show());
 
