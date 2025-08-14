@@ -146,7 +146,7 @@ app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
   createWindow();
 
-  tray = new Tray(path.join(__dirname, "public", "favicon.ico"));
+  tray = new Tray(path.join(__dirname, "public", "circel.png"));
   tray.setToolTip("Corp System Info App");
   tray.on("click", () => win.show());
 
