@@ -5,6 +5,8 @@ export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [systemData, setSystemData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
     ipcRenderer.on("user:logout", () => {
@@ -22,16 +24,28 @@ export default function App() {
       setLoading(true);
     });
 
+    ipcRenderer.on("user:login:success", () => {
+      setLoggedIn(true);
+      setUsername("");
+      setPassword("");
+    });
+
+    ipcRenderer.on("user:login:failed", () => {
+      alert("Login failed. Please check your credentials.");
+    });
+
     return () => {
       ipcRenderer.removeAllListeners("user:logout");
       ipcRenderer.removeAllListeners("system:data");
       ipcRenderer.removeAllListeners("system:fetching");
+      ipcRenderer.removeAllListeners("user:login:success");
+      ipcRenderer.removeAllListeners("user:login:failed");
     };
   }, []);
 
   const handleLogin = () => {
-    ipcRenderer.send("user:login");
-    setLoggedIn(true);
+    ipcRenderer.send("user:login", { username, password });
+    // setLoggedIn(true);
   };
 
   const handleLogout = () => {
@@ -42,7 +56,23 @@ export default function App() {
     <div style={{ padding: 40, fontFamily: "Arial", maxWidth: 800 }}>
       <h1>🏢 Corp Machine Info</h1>
       {!loggedIn ? (
-        <button onClick={handleLogin}>🔐 Login</button>
+        <div>
+          <input
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            style={{ display: "block", marginBottom: 10, width: "100%" }}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{ display: "block", marginBottom: 20, width: "100%" }}
+          />
+          <button onClick={handleLogin}>🔐 Login</button>
+        </div>
       ) : (
         <>
           <button onClick={handleLogout}>🚪 Logout</button>

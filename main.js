@@ -132,10 +132,17 @@ function updateTrayMenu() {
   tray.setContextMenu(isLoggedIn ? loggedInMenu : loggedOutMenu);
 }
 
-ipcMain.on("user:login", () => {
-  isLoggedIn = true;
-  updateTrayMenu();
-  fetchSystemData(); // auto-fetch on login
+ipcMain.on("user:login", (event, credentials) => {
+  const { username, password } = credentials;
+
+  if (username === "admin" && password === "admin") {
+    isLoggedIn = true;
+    updateTrayMenu();
+    win.webContents.send("user:login:success");
+    fetchSystemData(); // auto-fetch on login
+  } else {
+    win.webContents.send("user:login:failed");
+  }
 });
 
 ipcMain.on("user:logout", () => {
