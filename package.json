@@ -15,10 +15,13 @@
     },
     "directories": {
       "buildResources": "public"
+    },
+    "linux": {
+      "target": "deb"
     }
   },
   "keywords": [],
-  "author": "",
+  "author": "Raoul Bock <raoulbock01@gmail.com>",
   "license": "ISC",
   "description": "",
   "dependencies": {
