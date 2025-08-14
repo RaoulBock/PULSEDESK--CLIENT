@@ -18,6 +18,7 @@ function createWindow() {
   win = new BrowserWindow({
     width: 800,
     height: 600,
+    icon: path.join(__dirname, "public/speedometer-256x256.png"),
     webPreferences: {
       contextIsolation: false,
       nodeIntegration: true,

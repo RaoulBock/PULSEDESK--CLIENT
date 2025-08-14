@@ -2,6 +2,7 @@
   "name": "plus-desk",
   "version": "1.0.0",
   "main": "main.js",
+  "license": "MIT",
   "scripts": {
     "start": "webpack && electron .",
     "pack": "webpack && electron-builder --dir",
@@ -13,16 +14,25 @@
     "win": {
       "target": "nsis"
     },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PulseDesk"
+    },
     "directories": {
       "buildResources": "public"
     },
     "linux": {
-      "target": "deb"
+      "target": "deb",
+      "icon": "public/speedometer-256x256.png",
+      "category": "Utility",
+      "description": "PulseDesk is a real-time communication and productivity tool for teams."
     }
   },
   "keywords": [],
   "author": "Raoul Bock <raoulbock01@gmail.com>",
-  "license": "ISC",
   "description": "",
   "dependencies": {
     "axios": "^1.11.0",
