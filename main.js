@@ -82,10 +82,10 @@ function fetchSystemData() {
       win.webContents.send("system:data", systemInfo); // send back to the UI
       socket.emit("register", systemInfo); // send back to server
 
-      // ✅ Start heartbeat (every 30s)
+      // ✅ Start heartbeat (every 60s)
       setInterval(() => {
         socket.emit("heartbeat", { hostname: systemInfo.hostname });
-      }, 30000);
+      }, 60000);
     })
     .catch((error) => {
       console.error("Failed to fetch public IP:", error.message);
