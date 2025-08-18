@@ -9,6 +9,7 @@ const {
 const path = require("path");
 const https = require("https");
 const os = require("os");
+const axios = require("axios");
 
 let tray = null;
 let win;
@@ -35,6 +36,68 @@ function createWindow() {
     }
   });
 }
+
+// function fetchSystemData() {
+//   win.webContents.send("system:fetching");
+
+//   const hostname = os.hostname();
+//   const interfaces = os.networkInterfaces();
+//   const privateIPs = [];
+
+//   for (const name of Object.keys(interfaces)) {
+//     for (const iface of interfaces[name]) {
+//       if (iface.family === "IPv4" && !iface.internal) {
+//         privateIPs.push(iface.address);
+//       }
+//     }
+//   }
+
+//   const systemInfo = {
+//     hostname,
+//     platform: os.platform(),
+//     osType: os.type(),
+//     osRelease: os.release(),
+//     architecture: os.arch(),
+//     uptime: os.uptime(),
+//     totalMemory: `${(os.totalmem() / 1024 / 1024 / 1024).toFixed(2)} GB`,
+//     freeMemory: `${(os.freemem() / 1024 / 1024 / 1024).toFixed(2)} GB`,
+//     cpus: os.cpus().map((cpu) => cpu.model),
+//     cpuCount: os.cpus().length,
+//     privateIPs,
+//     publicIP: null,
+//   };
+
+//   https
+//     .get("https://api.ipify.org?format=json", (res) => {
+//       let data = "";
+//       res.on("data", (chunk) => (data += chunk));
+//       res.on("end", () => {
+//         try {
+//           const json = JSON.parse(data);
+//           systemInfo.publicIP = json.ip;
+
+//           console.log("🖥️ System Info:", systemInfo);
+//           new Notification({
+//             title: "System Info",
+//             body: "System details sent to UI.",
+//           }).show();
+
+//           win.webContents.send("system:data", systemInfo);
+//         } catch (e) {
+//           new Notification({
+//             title: "Error",
+//             body: "Failed to parse public IP.",
+//           }).show();
+//         }
+//       });
+//     })
+//     .on("error", () => {
+//       new Notification({
+//         title: "Error",
+//         body: "Failed to fetch public IP.",
+//       }).show();
+//     });
+// }
 
 function fetchSystemData() {
   win.webContents.send("system:fetching");
@@ -66,31 +129,20 @@ function fetchSystemData() {
     publicIP: null,
   };
 
-  https
-    .get("https://api.ipify.org?format=json", (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk));
-      res.on("end", () => {
-        try {
-          const json = JSON.parse(data);
-          systemInfo.publicIP = json.ip;
-
-          console.log("🖥️ System Info:", systemInfo);
-          new Notification({
-            title: "System Info",
-            body: "System details sent to UI.",
-          }).show();
-
-          win.webContents.send("system:data", systemInfo);
-        } catch (e) {
-          new Notification({
-            title: "Error",
-            body: "Failed to parse public IP.",
-          }).show();
-        }
-      });
+  axios
+    .get("https://api.ipify.org?format=json", {
+      headers: { "User-Agent": "PulseDesk/1.0" },
     })
-    .on("error", () => {
+    .then((response) => {
+      systemInfo.publicIP = response.data.ip;
+      new Notification({
+        title: "System Info",
+        body: "System details sent to UI.",
+      }).show();
+      win.webContents.send("system:data", systemInfo);
+    })
+    .catch((error) => {
+      console.error("Failed to fetch public IP:", error.message);
       new Notification({
         title: "Error",
         body: "Failed to fetch public IP.",
