@@ -10,10 +10,12 @@ const path = require("path");
 const https = require("https");
 const os = require("os");
 const axios = require("axios");
+const { io } = require("socket.io-client");
 
 let tray = null;
 let win;
 let isLoggedIn = false;
+const socket = io("http://localhost:4000"); // backend server
 
 function createWindow() {
   win = new BrowserWindow({
@@ -36,68 +38,6 @@ function createWindow() {
     }
   });
 }
-
-// function fetchSystemData() {
-//   win.webContents.send("system:fetching");
-
-//   const hostname = os.hostname();
-//   const interfaces = os.networkInterfaces();
-//   const privateIPs = [];
-
-//   for (const name of Object.keys(interfaces)) {
-//     for (const iface of interfaces[name]) {
-//       if (iface.family === "IPv4" && !iface.internal) {
-//         privateIPs.push(iface.address);
-//       }
-//     }
-//   }
-
-//   const systemInfo = {
-//     hostname,
-//     platform: os.platform(),
-//     osType: os.type(),
-//     osRelease: os.release(),
-//     architecture: os.arch(),
-//     uptime: os.uptime(),
-//     totalMemory: `${(os.totalmem() / 1024 / 1024 / 1024).toFixed(2)} GB`,
-//     freeMemory: `${(os.freemem() / 1024 / 1024 / 1024).toFixed(2)} GB`,
-//     cpus: os.cpus().map((cpu) => cpu.model),
-//     cpuCount: os.cpus().length,
-//     privateIPs,
-//     publicIP: null,
-//   };
-
-//   https
-//     .get("https://api.ipify.org?format=json", (res) => {
-//       let data = "";
-//       res.on("data", (chunk) => (data += chunk));
-//       res.on("end", () => {
-//         try {
-//           const json = JSON.parse(data);
-//           systemInfo.publicIP = json.ip;
-
-//           console.log("🖥️ System Info:", systemInfo);
-//           new Notification({
-//             title: "System Info",
-//             body: "System details sent to UI.",
-//           }).show();
-
-//           win.webContents.send("system:data", systemInfo);
-//         } catch (e) {
-//           new Notification({
-//             title: "Error",
-//             body: "Failed to parse public IP.",
-//           }).show();
-//         }
-//       });
-//     })
-//     .on("error", () => {
-//       new Notification({
-//         title: "Error",
-//         body: "Failed to fetch public IP.",
-//       }).show();
-//     });
-// }
 
 function fetchSystemData() {
   win.webContents.send("system:fetching");
@@ -139,7 +79,13 @@ function fetchSystemData() {
         title: "System Info",
         body: "System details sent to UI.",
       }).show();
-      win.webContents.send("system:data", systemInfo);
+      win.webContents.send("system:data", systemInfo); // send back to the UI
+      socket.emit("register", systemInfo); // send back to server
+
+      // ✅ Start heartbeat (every 30s)
+      setInterval(() => {
+        socket.emit("heartbeat", { hostname: systemInfo.hostname });
+      }, 30000);
     })
     .catch((error) => {
       console.error("Failed to fetch public IP:", error.message);
@@ -204,19 +150,6 @@ ipcMain.on("user:logout", () => {
   win.webContents.send("user:logout");
 });
 
-// app.whenReady().then(() => {
-//   Menu.setApplicationMenu(null);
-//   createWindow();
-//   const iconPath = path.resolve(
-//     __dirname,
-//     "public/icons8-fast-download-24.png"
-//   );
-//   tray = new Tray(iconPath);
-//   tray.setToolTip("Corp System Info App");
-//   tray.on("click", () => win.show());
-
-//   updateTrayMenu();
-// });
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
   createWindow();
