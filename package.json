@@ -11,6 +11,11 @@
   "build": {
     "appId": "com.hello.world",
     "productName": "PulseDesk",
+    "files": [
+      "main.js",
+      "dist/**/*",
+      "public/**/*"
+    ],
     "win": {
       "target": "nsis"
     },
