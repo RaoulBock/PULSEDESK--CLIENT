@@ -11,6 +11,7 @@ const https = require("https");
 const os = require("os");
 const axios = require("axios");
 const { io } = require("socket.io-client");
+const { exec } = require("child_process");
 
 let tray = null;
 let win;
@@ -39,7 +40,23 @@ function createWindow() {
   });
 }
 
-function fetchSystemData() {
+function getInstalledAppsWindows() {
+  return new Promise((resolve, reject) => {
+    exec("wmic product get name,version", (err, stdout, stderr) => {
+      if (err) return reject(err);
+
+      const apps = stdout
+        .split("\n")
+        .slice(1)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      resolve(apps);
+    });
+  });
+}
+
+async function fetchSystemData() {
   win.webContents.send("system:fetching");
 
   const hostname = os.hostname();
@@ -67,7 +84,16 @@ function fetchSystemData() {
     cpuCount: os.cpus().length,
     privateIPs,
     publicIP: null,
+    installedApps: [],
   };
+
+  if (systemInfo.platform === "win32") {
+    try {
+      systemInfo.installedApps = await getInstalledAppsWindows();
+    } catch (err) {
+      console.error("Failed to get installed apps:", err);
+    }
+  }
 
   axios
     .get("https://api.ipify.org?format=json", {
