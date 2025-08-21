@@ -11,7 +11,7 @@ const https = require("https");
 const os = require("os");
 const axios = require("axios");
 const { io } = require("socket.io-client");
-const { exec } = require("child_process");
+// const { exec } = require("child_process");
 
 let tray = null;
 let win;
@@ -40,21 +40,21 @@ function createWindow() {
   });
 }
 
-function getInstalledAppsWindows() {
-  return new Promise((resolve, reject) => {
-    exec("wmic product get name,version", (err, stdout, stderr) => {
-      if (err) return reject(err);
+// function getInstalledAppsWindows() {
+//   return new Promise((resolve, reject) => {
+//     exec("wmic product get name,version", (err, stdout, stderr) => {
+//       if (err) return reject(err);
 
-      const apps = stdout
-        .split("\n")
-        .slice(1)
-        .map((line) => line.trim())
-        .filter(Boolean);
+//       const apps = stdout
+//         .split("\n")
+//         .slice(1)
+//         .map((line) => line.trim())
+//         .filter(Boolean);
 
-      resolve(apps);
-    });
-  });
-}
+//       resolve(apps);
+//     });
+//   });
+// }
 
 async function fetchSystemData() {
   win.webContents.send("system:fetching");
@@ -87,13 +87,13 @@ async function fetchSystemData() {
     installedApps: [],
   };
 
-  if (systemInfo.platform === "win32") {
-    try {
-      systemInfo.installedApps = await getInstalledAppsWindows();
-    } catch (err) {
-      console.error("Failed to get installed apps:", err);
-    }
-  }
+  // if (systemInfo.platform === "win32") {
+  //   try {
+  //     systemInfo.installedApps = await getInstalledAppsWindows();
+  //   } catch (err) {
+  //     console.error("Failed to get installed apps:", err);
+  //   }
+  // }
 
   axios
     .get("https://api.ipify.org?format=json", {
