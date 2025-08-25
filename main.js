@@ -16,7 +16,7 @@ const { io } = require("socket.io-client");
 let tray = null;
 let win;
 let isLoggedIn = false;
-const socket = io("http://localhost:4000"); // backend server
+const socket = io("https://pulsedesk-backend.onrender.com"); // backend server
 
 function createWindow() {
   win = new BrowserWindow({
